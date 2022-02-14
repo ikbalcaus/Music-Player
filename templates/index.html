@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		
+    	<link rel="icon" href="static/img/favicon.png">
+		<title>Music Player</title>
+
+		<link rel="stylesheet" href="static/css/bootstrap.min.css">
+		<link rel="stylesheet" href="static/icons/material-icons.min.css">
+
+		<style>
+			*{
+				cursor: default;
+			}
+			main{
+				position: relative;
+				left: 50%;
+				transform: translateX(-50%);
+				padding: 10px;
+				width: 400px;
+			}
+			h1{
+				margin-top: 20px;
+				text-align: center;
+				cursor: initial;
+			}
+			audio{
+				width: 100%;
+			}
+			button{
+				border: none;
+				background-color: #efefef;
+				transition: 0.2s background-color;
+			}
+			button:hover{
+				background-color: #e5e7e8;
+			}
+			button:focus{
+				outline: none;
+			}
+			.btn-short{
+				height: 40px;
+				width: 40px;
+				border-radius: 50%;
+			}
+			button#radio{
+				height: 39px;
+				width: calc(100% - 134px);
+				border-radius: 10px;
+				position: relative;
+				top: -3px;
+			}
+			.material-icons{
+				position: relative;
+				top: 3px;
+				cursor: pointer;
+			}
+			ul{
+				margin-top: 20px;
+				list-style-type: none;
+				padding: 0;
+				height: calc(100vh - 235px);
+				overflow-x: hidden;
+				box-shadow: 2px 0 20px #aaa;
+				border-radius: 20px 0 0 20px;
+				width: 100%;
+			}
+			li{
+				padding-left: 20px;
+				cursor: pointer;
+				white-space: nowrap;
+			}
+			li:hover{
+				background-color: #eee;
+			}
+			ul::-webkit-scrollbar{
+				width: 10px;
+			}
+			ul::-webkit-scrollbar-track{
+				background: #eee;
+			}
+			ul::-webkit-scrollbar-thumb{
+				background: #888;
+			}
+			ul::-webkit-scrollbar-thumb:hover{
+				background: #555; 
+			}
+			@media (max-width: 400px){
+				main{
+					width: 100%;
+				}
+			}
+		</style>
+	</head>
+
+
+	<body>
+		<h1>Please Select a Song</h1>
+
+		<main>
+			<audio controls autoplay onEnded="next()"></audio>
+			<button id="prev" class="btn-short" onClick="prev()"><i class="material-icons" id="prev-icon">skip_previous</i></button>
+			<button id="radio" onClick="radio()">Radio</button>
+			<button id="shuffle" class="btn-short" onClick="shuffle()"><i class="material-icons" id="shuffle-icon">shuffle</i></button>
+			<button id="next" class="btn-short" onClick="next()"><i class="material-icons" id="next-icon">skip_next</i></button>
+
+			<ul>
+				{% for song in songs %}
+					<li id="{{loop.index-1}}" onClick='song({{loop.index-1}}, "{{song.replace(".mp3", "")}}")'>{{song.replace(".mp3", "")}}</li>
+				{% endfor %}
+			</ul>
+		</main>
+
+
+		<script src="static/js/jquery.min.js"></script>
+		<script src="static/js/cookie.js"></script>
+		<script>
+			var index_of_song, enable_radio = false
+
+			if($.cookie("song")){
+				$("#"+$.cookie("song")).click()
+				goto()
+			} else{
+				$("#prev").attr("style", "background-color: #efefef; cursor: default; color: #999")
+				$("#prev-icon").attr("style", "cursor: default")
+				$("#next").attr("style", "background-color: #efefef; cursor: default; color: #999")
+				$("#next-icon").attr("style", "cursor: default")
+			}
+
+			function goto(){
+				if(parseInt($.cookie("song")) - 5  >  0){
+					window.location = "#"+parseInt($.cookie("song") - 5)
+				} else if(isNaN($.cookie("song"))){
+					window.location = "#radio"
+				} else{
+					window.location = "#0"
+				}
+			}
+
+			function song(id, song){
+				$("h1").text(song)
+				$("audio").attr("src", "static/music/" + song + ".mp3")
+				$("button").removeAttr("style")
+				$("li").removeAttr("style")
+				$("#"+id).attr("style", "background-color: #ddd")
+				$(".material-icons").removeAttr("style")
+				index_of_song = id
+				enable_radio = false
+				cookie(index_of_song)
+
+				if(index_of_song == 0){
+					$("#prev").attr("style", "background-color: #efefef; cursor: default; color: #999")
+					$("#prev-icon").attr("style", "cursor: default")
+				} else if(index_of_song == {{number_of_songs-1}}){
+					$("#next").attr("style", "background-color: #efefef; cursor: default; color: #999")
+					$("#next-icon").attr("style", "cursor: default")
+				}
+			}
+
+			function radio(){
+				if(enable_radio == false){
+					$("h1").text("Radio")
+					$("audio").attr("src", "https://stream.playradio.rs:8443/play.aac")
+					$("button").attr("style", "background-color: #efefef; cursor: default; color: #999")
+					$("#shuffle").removeAttr("style")
+					$(".material-icons").attr("style", "cursor: default")
+					$("#shuffle-icon").removeAttr("style")
+					$("li").removeAttr("style")
+					enable_radio = true
+					cookie("radio")
+				}
+			}
+
+			function prev(){
+				if(index_of_song != 0  &&  !enable_radio){
+					index_of_song -= 1
+					$("#"+index_of_song).click()
+				}
+			}
+
+			function next(){
+				if(index_of_song != {{number_of_songs-1}}  &&  !enable_radio){	
+					index_of_song += 1
+					$("#"+index_of_song).click()
+				}
+			}
+
+			function shuffle(){
+				index_of_song = Math.floor(Math.random()*{{number_of_songs}})
+				$("#"+index_of_song).click()
+				goto()
+			}
+
+			function cookie(song){
+				$.cookie("song", song, {
+					expires: 7,
+					path: "/"
+				})
+			}
+		</script>
+	</body>
+</html>
